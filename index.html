@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastro de Artistas</title>
+  <style>
+    :root {
+      --bg: #f4efe7;
+      --card: #fffaf2;
+      --primary: #7a3e16;
+      --primary-dark: #4d260d;
+      --accent: #d8913c;
+      --text: #2b2118;
+      --muted: #76685c;
+      --border: #e6d6c3;
+      --danger: #b42318;
+      --success: #087443;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f4efe7, #ead6bd);
+      color: var(--text);
+      padding: 32px 5%;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .brand h1 {
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      color: var(--primary-dark);
+      margin-bottom: 8px;
+    }
+
+    .brand p {
+      color: var(--muted);
+      max-width: 680px;
+      line-height: 1.5;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button, .file-button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s ease;
+      font-size: 0.95rem;
+    }
+
+    button:hover, .file-button:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    button.secondary, .file-button.secondary {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+
+    button.secondary:hover, .file-button.secondary:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.35fr 0.65fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    form, .panel {
+      background: rgba(255, 250, 242, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(74, 42, 18, 0.12);
+    }
+
+    fieldset {
+      border: 0;
+      margin-bottom: 28px;
+    }
+
+    legend {
+      width: 100%;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      font-size: 0.92rem;
+      color: var(--muted);
+      margin-bottom: 7px;
+      font-weight: 700;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 13px 14px;
+      background: #fffdf8;
+      color: var(--text);
+      outline: none;
+      font-size: 1rem;
+      transition: 0.2s ease;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 110px;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(216, 145, 60, 0.18);
+    }
+
+    .obra-card {
+      border: 1px solid var(--border);
+      background: #fffdf8;
+      border-radius: 22px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .obra-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .obra-header strong {
+      color: var(--primary-dark);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .status {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      display: none;
+      font-weight: 700;
+    }
+
+    .status.success {
+      display: block;
+      color: var(--success);
+      background: rgba(8, 116, 67, 0.1);
+    }
+
+    .status.error {
+      display: block;
+      color: var(--danger);
+      background: rgba(180, 35, 24, 0.1);
+    }
+
+    .panel h2 {
+      color: var(--primary-dark);
+      margin-bottom: 10px;
+    }
+
+    .panel p {
+      color: var(--muted);
+      line-height: 1.45;
+      margin-bottom: 18px;
+    }
+
+    .artist-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 620px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .artist-item {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      background: #fffdf8;
+    }
+
+    .artist-item strong {
+      color: var(--primary-dark);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .artist-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    .artist-item .mini-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .artist-item button {
+      padding: 8px 12px;
+      font-size: 0.82rem;
+    }
+
+    .empty {
+      border: 1px dashed var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #211811;
+      color: #fff3df;
+      border-radius: 18px;
+      padding: 16px;
+      max-height: 360px;
+      overflow: auto;
+      margin-top: 14px;
+      display: none;
+    }
+
+    pre.visible {
+      display: block;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 22px 4%;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      form, .panel {
+        padding: 18px;
+        border-radius: 22px;
+      }
+
+      .form-actions, .top-actions {
+        flex-direction: column;
+      }
+
+      button, .file-button {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <section class="brand">
+        <h1>Cadastro de Artistas</h1>
+        <p>Cadastre artistas, contatos e obras. Os dados ficam salvos no navegador e podem ser exportados/importados como arquivo JSON.</p>
+      </section>
+
+      <section class="top-actions">
+        <button type="button" class="secondary" id="btnMostrarJson">Ver JSON</button>
+        <button type="button" id="btnBaixarJson">Baixar JSON</button>
+        <label for="importJson" class="file-button secondary">Importar JSON</label>
+        <input type="file" id="importJson" accept="application/json" />
+      </section>
+    </header>
+
+    <section class="layout">
+      <form id="artistForm">
+        <input type="hidden" id="editId" />
+
+        <fieldset>
+          <legend>1. Sobre o artista</legend>
+          <div class="grid">
+            <div>
+              <label for="nome">Nome *</label>
+              <input id="nome" name="nome" type="text" required placeholder="Nome completo ou nome artístico" />
+            </div>
+
+            <div>
+              <label for="ocupacao">Ocupação</label>
+              <input id="ocupacao" name="ocupacao" type="text" placeholder="Ex: artista plástico, artesão, pintor..." />
+            </div>
+
+            <div>
+              <label for="idade">Idade</label>
+              <input id="idade" name="idade" type="number" min="0" placeholder="Ex: 32" />
+            </div>
+
+            <div>
+              <label for="formacao">Formação</label>
+              <input id="formacao" name="formacao" type="text" placeholder="Ex: autodidata, artes visuais..." />
+            </div>
+
+            <div>
+              <label for="produzDesde">Produz artes com frequência desde</label>
+              <input id="produzDesde" name="produzDesde" type="text" placeholder="Ex: 2020" />
+            </div>
+
+            <div>
+              <label for="frequenciaProducao">Frequência de novas obras</label>
+              <input id="frequenciaProducao" name="frequenciaProducao" type="text" placeholder="Ex: semanal, mensal, por encomenda..." />
+            </div>
+
+            <div class="full">
+              <label for="historiaArte">Resumo da história do artista com a arte</label>
+              <textarea id="historiaArte" name="historiaArte" placeholder="Conte um pouco da trajetória, referências, estilo e relação com a arte."></textarea>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>2. Canais de contato</legend>
+          <div class="grid">
+            <div>
+              <label for="telefone">Número de telefone</label>
+              <input id="telefone" name="telefone" type="tel" placeholder="(93) 99999-9999" />
+            </div>
+
+            <div>
+              <label for="instagram">Instagram</label>
+              <input id="instagram" name="instagram" type="text" placeholder="@usuario" />
+            </div>
+
+            <div class="full">
+              <label for="facebook">Facebook</label>
+              <input id="facebook" name="facebook" type="text" placeholder="Link ou nome do perfil" />
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>3. Obras do artista</legend>
+          <div id="obrasContainer"></div>
+          <button type="button" class="secondary" id="btnAdicionarObra">+ Adicionar obra</button>
+        </fieldset>
+
+        <section class="form-actions">
+          <button type="button" class="secondary" id="btnLimpar">Limpar formulário</button>
+          <button type="submit">Salvar cadastro</button>
+        </section>
+
+        <div id="status" class="status"></div>
+      </form>
+
+      <aside class="panel">
+        <h2>Artistas cadastrados</h2>
+        <p>Os registros são salvos em <strong>localStorage</strong>. Para criar o arquivo físico, clique em <strong>Baixar JSON</strong>.</p>
+        <div id="artistList" class="artist-list"></div>
+        <pre id="jsonPreview"></pre>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "cadastro_artistas_json";
+
+    // Cole aqui a URL do seu Web App do Google Apps Script.
+    // Exemplo: https://script.google.com/macros/s/SEU_ID/exec
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFMHpfGZ7NQwlv5pz9icbH_NOjBdxcTkrjCRqfatY6kBWQ-fwMG_gAGHRu9yvzzi1w-A/exec";
+    const form = document.getElementById("artistForm");
+    const obrasContainer = document.getElementById("obrasContainer");
+    const artistList = document.getElementById("artistList");
+    const statusBox = document.getElementById("status");
+    const jsonPreview = document.getElementById("jsonPreview");
+
+    let artistas = carregarArtistas();
+
+    function gerarId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    function carregarArtistas() {
+      const dados = localStorage.getItem(STORAGE_KEY);
+      return dados ? JSON.parse(dados) : [];
+    }
+
+    function salvarNoNavegador() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(artistas, null, 2));
+      atualizarLista();
+      atualizarPreviewJson();
+    }
+
+    async function enviarParaGoogleSheets(artista) {
+      if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "COLE_AQUI_A_URL_DO_APPS_SCRIPT") {
+        throw new Error("Configure a URL do Google Apps Script antes de salvar.");
+      }
+
+      const resposta = await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(artista)
+      });
+
+      return resposta;
+    }
+
+    function mostrarStatus(mensagem, tipo = "success") {
+      statusBox.textContent = mensagem;
+      statusBox.className = `status ${tipo}`;
+      setTimeout(() => {
+        statusBox.className = "status";
+      }, 3500);
+    }
+
+    function criarObraCard(obra = {}) {
+      const card = document.createElement("div");
+      card.className = "obra-card";
+      card.innerHTML = `
+        <div class="obra-header">
+          <strong>Obra</strong>
+          <button type="button" class="danger btnRemoverObra">Remover</button>
+        </div>
+        <div class="grid">
+          <div>
+            <label>Nome</label>
+            <input class="obra-nome" type="text" value="${obra.nome || ""}" placeholder="Nome da obra" />
+          </div>
+          <div>
+            <label>Material</label>
+            <input class="obra-material" type="text" value="${obra.material || ""}" placeholder="Ex: tela, madeira, cerâmica..." />
+          </div>
+          <div>
+            <label>Peso</label>
+            <input class="obra-peso" type="text" value="${obra.peso || ""}" placeholder="Ex: 2kg" />
+          </div>
+          <div>
+            <label>Tamanho</label>
+            <input class="obra-tamanho" type="text" value="${obra.tamanho || ""}" placeholder="Ex: 60cm x 40cm" />
+          </div>
+          <div>
+            <label>Técnica</label>
+            <input class="obra-tecnica" type="text" value="${obra.tecnica || ""}" placeholder="Ex: acrílica sobre tela" />
+          </div>
+          <div>
+            <label>Preço</label>
+            <input class="obra-preco" type="text" value="${obra.preco || ""}" placeholder="Ex: R$ 500,00" />
+          </div>
+          <div class="full">
+            <label>Descrição da obra</label>
+            <textarea class="obra-descricao" placeholder="Descrição, contexto, inspiração ou significado da obra.">${obra.descricao || ""}</textarea>
+          </div>
+        </div>
+      `;
+
+      card.querySelector(".btnRemoverObra").addEventListener("click", () => {
+        card.remove();
+        renumerarObras();
+      });
+
+      obrasContainer.appendChild(card);
+      renumerarObras();
+    }
+
+    function renumerarObras() {
+      [...obrasContainer.querySelectorAll(".obra-card")].forEach((card, index) => {
+        card.querySelector(".obra-header strong").textContent = `Obra ${index + 1}`;
+      });
+    }
+
+    function coletarObras() {
+      return [...obrasContainer.querySelectorAll(".obra-card")].map(card => ({
+        nome: card.querySelector(".obra-nome").value.trim(),
+        material: card.querySelector(".obra-material").value.trim(),
+        peso: card.querySelector(".obra-peso").value.trim(),
+        tamanho: card.querySelector(".obra-tamanho").value.trim(),
+        tecnica: card.querySelector(".obra-tecnica").value.trim(),
+        descricao: card.querySelector(".obra-descricao").value.trim(),
+        preco: card.querySelector(".obra-preco").value.trim()
+      })).filter(obra => Object.values(obra).some(valor => valor !== ""));
+    }
+
+    function limparFormulario() {
+      form.reset();
+      document.getElementById("editId").value = "";
+      obrasContainer.innerHTML = "";
+      criarObraCard();
+      form.querySelector("button[type='submit']").textContent = "Salvar cadastro";
+    }
+
+    function preencherFormulario(artista) {
+      document.getElementById("editId").value = artista.id;
+      document.getElementById("nome").value = artista.nome || "";
+      document.getElementById("ocupacao").value = artista.ocupacao || "";
+      document.getElementById("idade").value = artista.idade || "";
+      document.getElementById("formacao").value = artista.formacao || "";
+      document.getElementById("produzDesde").value = artista.produzDesde || "";
+      document.getElementById("frequenciaProducao").value = artista.frequenciaProducao || "";
+      document.getElementById("historiaArte").value = artista.historiaArte || "";
+      document.getElementById("telefone").value = artista.contatos?.telefone || "";
+      document.getElementById("instagram").value = artista.contatos?.instagram || "";
+      document.getElementById("facebook").value = artista.contatos?.facebook || "";
+
+      obrasContainer.innerHTML = "";
+      if (artista.obras?.length) {
+        artista.obras.forEach(obra => criarObraCard(obra));
+      } else {
+        criarObraCard();
+      }
+
+      form.querySelector("button[type='submit']").textContent = "Atualizar cadastro";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function excluirArtista(id) {
+      if (!confirm("Deseja excluir este cadastro?")) return;
+      artistas = artistas.filter(artista => artista.id !== id);
+      salvarNoNavegador();
+      mostrarStatus("Cadastro excluído com sucesso.");
+      limparFormulario();
+    }
+
+    function atualizarLista() {
+      if (!artistas.length) {
+        artistList.innerHTML = `<div class="empty">Nenhum artista cadastrado ainda.</div>`;
+        return;
+      }
+
+      artistList.innerHTML = artistas.map(artista => `
+        <article class="artist-item">
+          <strong>${artista.nome}</strong>
+          <span>${artista.ocupacao || "Ocupação não informada"} • ${artista.obras.length} obra(s)</span>
+          <div class="mini-actions">
+            <button type="button" onclick="editarArtista('${artista.id}')">Editar</button>
+            <button type="button" class="danger" onclick="excluirArtista('${artista.id}')">Excluir</button>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function editarArtista(id) {
+      const artista = artistas.find(item => item.id === id);
+      if (artista) preencherFormulario(artista);
+    }
+
+    function atualizarPreviewJson() {
+      jsonPreview.textContent = JSON.stringify(artistas, null, 2);
+    }
+
+    function baixarJson() {
+      const conteudo = JSON.stringify(artistas, null, 2);
+      const blob = new Blob([conteudo], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "artistas-cadastrados.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const editId = document.getElementById("editId").value;
+      const artista = {
+        id: editId || gerarId(),
+        nome: document.getElementById("nome").value.trim(),
+        ocupacao: document.getElementById("ocupacao").value.trim(),
+        idade: document.getElementById("idade").value,
+        formacao: document.getElementById("formacao").value.trim(),
+        produzDesde: document.getElementById("produzDesde").value.trim(),
+        frequenciaProducao: document.getElementById("frequenciaProducao").value.trim(),
+        historiaArte: document.getElementById("historiaArte").value.trim(),
+        contatos: {
+          telefone: document.getElementById("telefone").value.trim(),
+          instagram: document.getElementById("instagram").value.trim(),
+          facebook: document.getElementById("facebook").value.trim()
+        },
+        obras: coletarObras(),
+        atualizadoEm: new Date().toISOString()
+      };
+
+      if (!artista.nome) {
+        mostrarStatus("Informe pelo menos o nome do artista.", "error");
+        return;
+      }
+
+      try {
+        await enviarParaGoogleSheets(artista);
+
+        if (editId) {
+          artistas = artistas.map(item => item.id === editId ? artista : item);
+          mostrarStatus("Cadastro atualizado no Google Sheets com sucesso.");
+        } else {
+          artistas.push(artista);
+          mostrarStatus("Cadastro enviado para o Google Sheets com sucesso.");
+        }
+
+        salvarNoNavegador();
+        limparFormulario();
+      } catch (error) {
+        mostrarStatus(error.message || "Erro ao enviar cadastro para o Google Sheets.", "error");
+      }
+    });
+
+    document.getElementById("btnAdicionarObra").addEventListener("click", () => criarObraCard());
+    document.getElementById("btnLimpar").addEventListener("click", limparFormulario);
+    document.getElementById("btnBaixarJson").addEventListener("click", baixarJson);
+
+    document.getElementById("btnMostrarJson").addEventListener("click", () => {
+      jsonPreview.classList.toggle("visible");
+      atualizarPreviewJson();
+    });
+
+    document.getElementById("importJson").addEventListener("change", event => {
+      const arquivo = event.target.files[0];
+      if (!arquivo) return;
+
+      const leitor = new FileReader();
+      leitor.onload = () => {
+        try {
+          const dados = JSON.parse(leitor.result);
+          if (!Array.isArray(dados)) throw new Error("Formato inválido");
+          artistas = dados;
+          salvarNoNavegador();
+          mostrarStatus("JSON importado com sucesso.");
+        } catch (error) {
+          mostrarStatus("Não foi possível importar o JSON. Verifique o formato do arquivo.", "error");
+        }
+      };
+      leitor.readAsText(arquivo);
+      event.target.value = "";
+    });
+
+    criarObraCard();
+    atualizarLista();
+    atualizarPreviewJson();
+  </script>
+</body>
+</html>
