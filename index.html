@@ -434,7 +434,7 @@
 
     // Cole aqui a URL do seu Web App do Google Apps Script.
     // Exemplo: https://script.google.com/macros/s/SEU_ID/exec
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFMHpfGZ7NQwlv5pz9icbH_NOjBdxcTkrjCRqfatY6kBWQ-fwMG_gAGHRu9yvzzi1w-A/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwNIYfpwaghAsBj_mgjcB8sZ3CTbQ5Pyqe90GCgTJw6TL__RUVqnwfUxJjm1CXVAdR_EQ/exec";
     const form = document.getElementById("artistForm");
     const obrasContainer = document.getElementById("obrasContainer");
     const artistList = document.getElementById("artistList");
@@ -507,29 +507,35 @@
       };
     }
 
-    async function carregarArtistasDoGoogleSheets({ mostrarMensagem = false } = {}) {
-      if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "COLE_AQUI_A_URL_DO_APPS_SCRIPT") {
-        throw new Error("Configure a URL do Google Apps Script antes de carregar a planilha.");
-      }
+    function carregarJsonp(url) {
+        return new Promise((resolve, reject) => {
+            const callbackName = "callbackSheets_" + Date.now();
 
-      artistList.innerHTML = `<div class="empty">Carregando dados do Google Sheets...</div>`;
+            window[callbackName] = function (dados) {
+            resolve(dados);
+            delete window[callbackName];
+            script.remove();
+            };
 
-      const resposta = await fetch(`${GOOGLE_SCRIPT_URL}?acao=listar&t=${Date.now()}`, {
-        method: "GET",
-        cache: "no-store"
-      });
+            const script = document.createElement("script");
+            script.src = `${url}?acao=listar&callback=${callbackName}&t=${Date.now()}`;
+            script.onerror = reject;
 
-      if (!resposta.ok) {
-        throw new Error("Não foi possível carregar os dados do Google Sheets.");
-      }
+            document.body.appendChild(script);
+        });
+        }
 
-      const dados = await resposta.json();
-      artistas = extrairListaDaResposta(dados).map(normalizarArtista);
-      salvarCacheLocal();
+        async function carregarArtistasDoGoogleSheets({ mostrarMensagem = false } = {}) {
+        artistList.innerHTML = `<div class="empty">Carregando dados do Google Sheets...</div>`;
 
-      if (mostrarMensagem) {
-        mostrarStatus("Dados atualizados a partir do Google Sheets.");
-      }
+        const dados = await carregarJsonp(GOOGLE_SCRIPT_URL);
+
+        artistas = extrairListaDaResposta(dados).map(normalizarArtista);
+        salvarCacheLocal();
+
+        if (mostrarMensagem) {
+            mostrarStatus("Dados atualizados a partir do Google Sheets.");
+        }
     }
 
     async function iniciarLista() {
