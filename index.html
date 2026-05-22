@@ -330,10 +330,11 @@
     <header>
       <section class="brand">
         <h1>Cadastro de Artistas</h1>
-        <p>Cadastre artistas, contatos e obras. Os dados ficam salvos no navegador e podem ser exportados/importados como arquivo JSON.</p>
+        <p>Cadastre artistas, contatos e obras. A lista é carregada do Google Sheets e pode ser baixada como arquivo JSON.</p>
       </section>
 
       <section class="top-actions">
+        <button type="button" class="secondary" id="btnAtualizarSheets">Atualizar Sheets</button>
         <button type="button" class="secondary" id="btnMostrarJson">Ver JSON</button>
         <button type="button" id="btnBaixarJson">Baixar JSON</button>
         <label for="importJson" class="file-button secondary">Importar JSON</label>
@@ -421,7 +422,7 @@
 
       <aside class="panel">
         <h2>Artistas cadastrados</h2>
-        <p>Os registros são salvos em <strong>localStorage</strong>. Para criar o arquivo físico, clique em <strong>Baixar JSON</strong>.</p>
+        <p>Os registros abaixo vêm do <strong>Google Sheets</strong>. Para criar o arquivo físico, clique em <strong>Baixar JSON</strong>.</p>
         <div id="artistList" class="artist-list"></div>
         <pre id="jsonPreview"></pre>
       </aside>
@@ -440,21 +441,105 @@
     const statusBox = document.getElementById("status");
     const jsonPreview = document.getElementById("jsonPreview");
 
-    let artistas = carregarArtistas();
+    let artistas = [];
 
     function gerarId() {
       return Date.now().toString(36) + Math.random().toString(36).slice(2);
     }
 
-    function carregarArtistas() {
+    function carregarArtistasDoCache() {
       const dados = localStorage.getItem(STORAGE_KEY);
-      return dados ? JSON.parse(dados) : [];
+      if (!dados) return [];
+
+      try {
+        return JSON.parse(dados);
+      } catch (error) {
+        return [];
+      }
     }
 
-    function salvarNoNavegador() {
+    function salvarCacheLocal() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(artistas, null, 2));
       atualizarLista();
       atualizarPreviewJson();
+    }
+
+    function extrairListaDaResposta(dados) {
+      if (Array.isArray(dados)) return dados;
+      if (Array.isArray(dados?.artistas)) return dados.artistas;
+      if (Array.isArray(dados?.dados)) return dados.dados;
+      if (Array.isArray(dados?.data)) return dados.data;
+      if (Array.isArray(dados?.rows)) return dados.rows;
+      return [];
+    }
+
+    function tentarJson(valor, padrao) {
+      if (Array.isArray(valor) || (valor && typeof valor === "object")) return valor;
+      if (typeof valor !== "string" || !valor.trim()) return padrao;
+
+      try {
+        return JSON.parse(valor);
+      } catch (error) {
+        return padrao;
+      }
+    }
+
+    function normalizarArtista(item) {
+      const contatos = tentarJson(item.contatos, {});
+      const obras = tentarJson(item.obras, []);
+
+      return {
+        id: String(item.id || item.ID || gerarId()),
+        nome: item.nome || item.Nome || "",
+        ocupacao: item.ocupacao || item["ocupação"] || item.Ocupacao || item["Ocupação"] || "",
+        idade: item.idade || item.Idade || "",
+        formacao: item.formacao || item["formação"] || item.Formacao || item["Formação"] || "",
+        produzDesde: item.produzDesde || item["produz desde"] || item["Produz desde"] || "",
+        frequenciaProducao: item.frequenciaProducao || item["frequencia produção"] || item["Frequência produção"] || "",
+        historiaArte: item.historiaArte || item["historia arte"] || item["História arte"] || "",
+        contatos: {
+          telefone: contatos.telefone || item.telefone || item.Telefone || "",
+          instagram: contatos.instagram || item.instagram || item.Instagram || "",
+          facebook: contatos.facebook || item.facebook || item.Facebook || ""
+        },
+        obras: Array.isArray(obras) ? obras : [],
+        atualizadoEm: item.atualizadoEm || item["atualizado em"] || item["Atualizado em"] || ""
+      };
+    }
+
+    async function carregarArtistasDoGoogleSheets({ mostrarMensagem = false } = {}) {
+      if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "COLE_AQUI_A_URL_DO_APPS_SCRIPT") {
+        throw new Error("Configure a URL do Google Apps Script antes de carregar a planilha.");
+      }
+
+      artistList.innerHTML = `<div class="empty">Carregando dados do Google Sheets...</div>`;
+
+      const resposta = await fetch(`${GOOGLE_SCRIPT_URL}?acao=listar&t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store"
+      });
+
+      if (!resposta.ok) {
+        throw new Error("Não foi possível carregar os dados do Google Sheets.");
+      }
+
+      const dados = await resposta.json();
+      artistas = extrairListaDaResposta(dados).map(normalizarArtista);
+      salvarCacheLocal();
+
+      if (mostrarMensagem) {
+        mostrarStatus("Dados atualizados a partir do Google Sheets.");
+      }
+    }
+
+    async function iniciarLista() {
+      try {
+        await carregarArtistasDoGoogleSheets();
+      } catch (error) {
+        artistas = carregarArtistasDoCache();
+        salvarCacheLocal();
+        mostrarStatus("Não consegui carregar o Google Sheets. Mostrando o último cache salvo no navegador.", "error");
+      }
     }
 
     async function enviarParaGoogleSheets(artista) {
@@ -466,7 +551,7 @@
         method: "POST",
         mode: "no-cors",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "text/plain;charset=utf-8"
         },
         body: JSON.stringify(artista)
       });
@@ -493,34 +578,42 @@
         <div class="grid">
           <div>
             <label>Nome</label>
-            <input class="obra-nome" type="text" value="${obra.nome || ""}" placeholder="Nome da obra" />
+            <input class="obra-nome" type="text" placeholder="Nome da obra" />
           </div>
           <div>
             <label>Material</label>
-            <input class="obra-material" type="text" value="${obra.material || ""}" placeholder="Ex: tela, madeira, cerâmica..." />
+            <input class="obra-material" type="text" placeholder="Ex: tela, madeira, cerâmica..." />
           </div>
           <div>
             <label>Peso</label>
-            <input class="obra-peso" type="text" value="${obra.peso || ""}" placeholder="Ex: 2kg" />
+            <input class="obra-peso" type="text" placeholder="Ex: 2kg" />
           </div>
           <div>
             <label>Tamanho</label>
-            <input class="obra-tamanho" type="text" value="${obra.tamanho || ""}" placeholder="Ex: 60cm x 40cm" />
+            <input class="obra-tamanho" type="text" placeholder="Ex: 60cm x 40cm" />
           </div>
           <div>
             <label>Técnica</label>
-            <input class="obra-tecnica" type="text" value="${obra.tecnica || ""}" placeholder="Ex: acrílica sobre tela" />
+            <input class="obra-tecnica" type="text" placeholder="Ex: acrílica sobre tela" />
           </div>
           <div>
             <label>Preço</label>
-            <input class="obra-preco" type="text" value="${obra.preco || ""}" placeholder="Ex: R$ 500,00" />
+            <input class="obra-preco" type="text" placeholder="Ex: R$ 500,00" />
           </div>
           <div class="full">
             <label>Descrição da obra</label>
-            <textarea class="obra-descricao" placeholder="Descrição, contexto, inspiração ou significado da obra.">${obra.descricao || ""}</textarea>
+            <textarea class="obra-descricao" placeholder="Descrição, contexto, inspiração ou significado da obra."></textarea>
           </div>
         </div>
       `;
+
+      card.querySelector(".obra-nome").value = obra.nome || "";
+      card.querySelector(".obra-material").value = obra.material || "";
+      card.querySelector(".obra-peso").value = obra.peso || "";
+      card.querySelector(".obra-tamanho").value = obra.tamanho || "";
+      card.querySelector(".obra-tecnica").value = obra.tecnica || "";
+      card.querySelector(".obra-preco").value = obra.preco || "";
+      card.querySelector(".obra-descricao").value = obra.descricao || "";
 
       card.querySelector(".btnRemoverObra").addEventListener("click", () => {
         card.remove();
@@ -584,7 +677,7 @@
     function excluirArtista(id) {
       if (!confirm("Deseja excluir este cadastro?")) return;
       artistas = artistas.filter(artista => artista.id !== id);
-      salvarNoNavegador();
+      salvarCacheLocal();
       mostrarStatus("Cadastro excluído com sucesso.");
       limparFormulario();
     }
@@ -595,16 +688,31 @@
         return;
       }
 
-      artistList.innerHTML = artistas.map(artista => `
-        <article class="artist-item">
-          <strong>${artista.nome}</strong>
-          <span>${artista.ocupacao || "Ocupação não informada"} • ${artista.obras.length} obra(s)</span>
-          <div class="mini-actions">
-            <button type="button" onclick="editarArtista('${artista.id}')">Editar</button>
-            <button type="button" class="danger" onclick="excluirArtista('${artista.id}')">Excluir</button>
-          </div>
-        </article>
-      `).join("");
+      artistList.innerHTML = "";
+      artistas.forEach(artista => {
+        const item = document.createElement("article");
+        const nome = document.createElement("strong");
+        const resumo = document.createElement("span");
+        const acoes = document.createElement("div");
+        const btnEditar = document.createElement("button");
+        const btnExcluir = document.createElement("button");
+
+        item.className = "artist-item";
+        nome.textContent = artista.nome;
+        resumo.textContent = `${artista.ocupacao || "Ocupação não informada"} • ${artista.obras.length} obra(s)`;
+        acoes.className = "mini-actions";
+        btnEditar.type = "button";
+        btnEditar.textContent = "Editar";
+        btnEditar.addEventListener("click", () => editarArtista(artista.id));
+        btnExcluir.type = "button";
+        btnExcluir.className = "danger";
+        btnExcluir.textContent = "Excluir";
+        btnExcluir.addEventListener("click", () => excluirArtista(artista.id));
+
+        acoes.append(btnEditar, btnExcluir);
+        item.append(nome, resumo, acoes);
+        artistList.appendChild(item);
+      });
     }
 
     function editarArtista(id) {
@@ -665,8 +773,9 @@
           mostrarStatus("Cadastro enviado para o Google Sheets com sucesso.");
         }
 
-        salvarNoNavegador();
+        salvarCacheLocal();
         limparFormulario();
+        carregarArtistasDoGoogleSheets().catch(() => atualizarLista());
       } catch (error) {
         mostrarStatus(error.message || "Erro ao enviar cadastro para o Google Sheets.", "error");
       }
@@ -675,6 +784,11 @@
     document.getElementById("btnAdicionarObra").addEventListener("click", () => criarObraCard());
     document.getElementById("btnLimpar").addEventListener("click", limparFormulario);
     document.getElementById("btnBaixarJson").addEventListener("click", baixarJson);
+    document.getElementById("btnAtualizarSheets").addEventListener("click", () => {
+      carregarArtistasDoGoogleSheets({ mostrarMensagem: true }).catch(error => {
+        mostrarStatus(error.message || "Não foi possível atualizar os dados do Google Sheets.", "error");
+      });
+    });
 
     document.getElementById("btnMostrarJson").addEventListener("click", () => {
       jsonPreview.classList.toggle("visible");
@@ -690,9 +804,9 @@
         try {
           const dados = JSON.parse(leitor.result);
           if (!Array.isArray(dados)) throw new Error("Formato inválido");
-          artistas = dados;
-          salvarNoNavegador();
-          mostrarStatus("JSON importado com sucesso.");
+          artistas = dados.map(normalizarArtista);
+          salvarCacheLocal();
+          mostrarStatus("JSON importado no navegador. Para enviar ao Google Sheets, salve cada cadastro importado.");
         } catch (error) {
           mostrarStatus("Não foi possível importar o JSON. Verifique o formato do arquivo.", "error");
         }
@@ -702,8 +816,7 @@
     });
 
     criarObraCard();
-    atualizarLista();
-    atualizarPreviewJson();
+    iniciarLista();
   </script>
 </body>
 </html>
